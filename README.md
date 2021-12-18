@@ -3,6 +3,12 @@ DIY Variometer realized with Arduino Nano 33 BLE Sense
 
 Since FlySkyHy doesn't support LK8EX1 sentence when 'vario' field not set, use PRS-sentence protocol for FlySkyHy.
 
+## used libs
+
+Arduino_LPS22HB for pressure sensor
+Arduino_HTS221 for temperature sensor
+
+
 # Useful readings
 <https://gitlab.com/xcontest-public/xctrack-public/-/issues/600>
 
