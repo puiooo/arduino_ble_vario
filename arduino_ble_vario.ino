@@ -1,5 +1,8 @@
 #include <Arduino_LPS22HB.h>
+#include <Arduino_HTS221.h>
 #include "HardwareBLESerial.h"
+
+#define DEBUG
 
 #define LK8EX1_MODE
 // #define PRS_MODE
@@ -9,7 +12,8 @@ const int DELAY_MS = 50;
 
 #ifdef LK8EX1_MODE
 const String LK8EX1_SENTENCE_BEGIN = String("LK8EX1,");
-const String LK8EX1_SENTENCE_END = String(",99999,9999,29,999,");
+const String LK8EX1_SENTENCE_VARIO = String(",99999,9999,");
+const String LK8EX1_SENTENCE_END = String(",999,");
 #endif
 
 
@@ -21,7 +25,11 @@ void setup() {
     Serial.println("Failed to initialize pressure sensor!");
     while (1);
   }
-
+  if (!HTS.begin()) {
+    Serial.begin(9600);
+    Serial.println("Failed to initialize temperature sensor!");
+    while (1);
+  }
   if (!bleSerial.beginAndSetupBLE(NAME)) {
     Serial.begin(9600);
     while (true) {
@@ -37,21 +45,26 @@ void loop() {
 
   // read the sensor value (Defaults to KILOPASCAL, if unit parameter is not provided )
   float pressure = BARO.readPressure();
+  int temperature = HTS.readTemperature();
 
+#ifdef DEBUG
   Serial.print("gathered pressure (kPA): ");
   Serial.println(pressure);
-
+  Serial.print("gathered temperature (°C): ");
+  Serial.println(temperature);
+#endif
 
 #ifdef LK8EX1_MODE
   pressure = (pressure * 10) * 100; // (kPA  * 10) -> hPA * 100 (example for 1013.25 becomes  101325)
-
-  String str_out = LK8EX1_SENTENCE_BEGIN + String(pressure) + LK8EX1_SENTENCE_END;
+  String str_out = LK8EX1_SENTENCE_BEGIN + String(pressure) + LK8EX1_SENTENCE_VARIO + String(temperature) + LK8EX1_SENTENCE_END;
   
   uint16_t checksum = calculateChecksum(str_out);
 
   str_out = "$" + str_out + "*" + String(checksum, HEX);
 
+#ifdef DEBUG
   Serial.println(str_out);
+#endif
 
   char output[str_out.length() + 1];
   str_out.toCharArray(output, str_out.length() + 1);
@@ -64,7 +77,10 @@ void loop() {
   char messageBuffer[16];
   sprintf(messageBuffer, "PRS %X\r\n", finalPressure); // convert to HEX
 
+#ifdef DEBUG
   Serial.println(messageBuffer);
+#endif
+  
   bleSerial.println(messageBuffer);
 #endif
 
