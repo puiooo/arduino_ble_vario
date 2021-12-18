@@ -20,4 +20,4 @@ checksum generation: <https://en.wikipedia.org/wiki/NMEA_0183#C_implementation_o
 LK8EX1 standard: <https://github.com/LK8000/LK8000/blob/master/Docs/LK8EX1.txt>
 
 # Credits
-[HardwareBLESerial](https://github.com/Uberi/Arduino-HardwareBLESerial) by Uberi with small modifications (thx to @Synder14) for receiveCharacteristic and transmitCharacteristic (see [here](https://gitlab.com/xcontest-public/xctrack-public/-/issues/600#note_541486035).
+[HardwareBLESerial](https://github.com/Uberi/Arduino-HardwareBLESerial) by Uberi with small modifications (thx to @Synder14) for receiveCharacteristic and transmitCharacteristic (see [here](https://gitlab.com/xcontest-public/xctrack-public/-/issues/600#note_541486035)).
