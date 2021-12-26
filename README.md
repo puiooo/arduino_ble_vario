@@ -1,5 +1,5 @@
 # arduino_ble_vario
-DIY Variometer realized with Arduino Nano 33 BLE Sense
+DIY Variometer realized with Arduino Nano 33 BLE Sense to use with XCTrack
 
 Since FlySkyHy doesn't support LK8EX1 sentence when 'vario' field not set, use PRS-sentence protocol for FlySkyHy.
 
