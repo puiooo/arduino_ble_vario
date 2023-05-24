@@ -1,11 +1,15 @@
 #include <Arduino_LPS22HB.h>
 #include <Arduino_HTS221.h>
+#include <Adafruit_GPS.h>
 #include "HardwareBLESerial.h"
 
 #define DEBUG
 
 #define LK8EX1_MODE
 // #define PRS_MODE
+
+#define GPS_MODE
+
 
 const char NAME[] = "BLE_VARIO";
 const int DELAY_MS = 50;
@@ -18,6 +22,11 @@ const String LK8EX1_SENTENCE_END = String(",999,");
 
 
 HardwareBLESerial & bleSerial = HardwareBLESerial::getInstance();
+
+#ifdef GPS_MODE
+#define GPSSerial Serial1
+Adafruit_GPS GPS(&GPSSerial);
+#endif
 
 void setup() {
   if (!BARO.begin()) {
@@ -32,11 +41,19 @@ void setup() {
   }
   if (!bleSerial.beginAndSetupBLE(NAME)) {
     Serial.begin(9600);
-    while (true) {
-      Serial.println("failed to initialize HardwareBLESerial!");
-      delay(1000);
-    }
+    Serial.println("failed to initialize HardwareBLESerial!");
+    while (1);
   }
+#ifdef GPS_MODE
+  GPS.begin(9600);
+  GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA); // turn on RMC (recommended minimum) and GGA (fix data) including altitude
+  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ); // 1 Hz update rate
+  GPS.sendCommand(PGCMD_ANTENNA); // Request updates on antenna status
+
+#ifdef DEBUG
+  GPSSerial.println(PMTK_Q_RELEASE);
+#endif
+#endif
 }
 
 void loop() {
@@ -57,7 +74,7 @@ void loop() {
 #ifdef LK8EX1_MODE
   pressure = (pressure * 10) * 100; // (kPA  * 10) -> hPA * 100 (example for 1013.25 becomes  101325)
   String str_out = LK8EX1_SENTENCE_BEGIN + String(pressure) + LK8EX1_SENTENCE_VARIO + String(temperature) + LK8EX1_SENTENCE_END;
-  
+
   uint16_t checksum = calculateChecksum(str_out);
 
   str_out = "$" + str_out + "*" + String(checksum, HEX);
@@ -80,8 +97,39 @@ void loop() {
 #ifdef DEBUG
   Serial.println(messageBuffer);
 #endif
-  
+
   bleSerial.println(messageBuffer);
+#endif
+
+#ifdef GPS_MODE
+  char c = GPS.read();
+
+  if (!GPS.parse(GPS.lastNMEA())) { // this also sets the newNMEAreceived() flag to false
+    Serial.print("rekt");
+    return; // we can fail to parse a sentence in which case we should just wait for another
+  }
+
+  Serial.print("\nTime: ");
+  Serial.print(GPS.hour, DEC); Serial.print(':');
+  Serial.print(GPS.minute, DEC); Serial.print(':');
+  Serial.print(GPS.seconds, DEC); Serial.print('.');
+  Serial.print("Date: ");
+  Serial.print(GPS.day, DEC); Serial.print('/');
+  Serial.print(GPS.month, DEC); Serial.print("/20");
+  Serial.println(GPS.year, DEC);
+
+  if (GPS.newNMEAreceived()) {
+    // a tricky thing here is if we print the NMEA sentence, or data
+    // we end up not listening and catching other sentences!
+    // so be very wary if using OUTPUT_ALLDATA and trying to print out data
+    bleSerial.println(GPS.lastNMEA()); // this also sets the newNMEAreceived() flag to false
+
+#ifdef DEBUG
+    Serial.print('received: ');
+    Serial.print(c);
+    Serial.print("\n");
+#endif
+  }
 #endif
 
   // wait to print again
